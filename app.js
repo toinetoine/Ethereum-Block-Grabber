@@ -8,7 +8,8 @@ var Web3 = require('web3');
 
 
 var grabBlocks = function(config) {
-	var web3 = new Web3(new Web3.providers.HttpProvider(config.gethUrl));
+	
+	var web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:" + gethPort.toString()));
 	setTimeout(function() {
 		grabBlock(config, web3, "latest");
 	}, 10000);
@@ -59,8 +60,6 @@ var grabBlock = function(config, web3, blockHash) {
 					}
 				}
 			}
-
-			
 		});
 	}
 	else {
@@ -72,19 +71,14 @@ var grabBlock = function(config, web3, blockHash) {
 
 
 var writeBlockToFile = function(config, blockData) {
-	var outputDirectoryPath = ".";
-	if('output' in config && (typeof config.output) != "string" ) {
-		outputDirectoryPath = config.output;
-	}
-
 	var blockFilename = blockData.hash + ".json";
 	var fileContents = JSON.stringify(blockData, null, 4);
 
 	// TODO: write the blockData to the file
-	fs.writeFile(outputDirectoryPath + "/" + blockFilename, fileContents, function(error) {
+	fs.writeFile(config.output + "/" + blockFilename, fileContents, function(error) {
 		if(error) {
 			console.log("Error: Aborted due to error on writting to file for block number " +
-				blockData.number.toString() + ": '" + outputDirectoryPath + "/" +
+				blockData.number.toString() + ": '" + config.output + "/" +
 				blockFilename + "'");
 			console.log("Error Received: " + error);
 			process.exit(9);
@@ -93,7 +87,7 @@ var writeBlockToFile = function(config, blockData) {
 		}
 		else {
 			console.log("File successfully written for block number " +
-				blockData.number.toString() + ": '" + outputDirectoryPath + "/" +
+				blockData.number.toString() + ": '" + config.output + "/" +
 				blockFilename + "'");
 		}
 	}); 
@@ -105,17 +99,33 @@ var writeBlockToFile = function(config, blockData) {
 // read input arguments
 // possible args: 
 //		ouput (output directory, this directory if not provided)
-//		gethUrl (geth url, mandatory)
+//		gethPort (geth port on local host (optional, defult = 8545))
+
+try {
+	data = fs.readFileSync('foo.bar');
+}
+catch (error) {
+	if (error.code === 'ENOENT') {
+		console.log('File not found!');
+	}
+	else {
+		throw error;
+	}
+}
+
 var configContents = fs.readFileSync("config.json");
 var config = JSON.parse(configContents);
 
-if(!('gethUrl' in config) || (typeof config.gethUrl) != "string"  || 
-	config.gethUrl.length == 0) {
-    console.log("Error: In config.json 'output': expecting string value for the " + 
-    	"url geth is running on. (should be http://localhost:8545 by default for " +
-    	"local geth instance)");
-    process.exit(9);
+// set the default geth port if it's not provided
+if(!('gethPort' in config) || (typeof config.gethPort) != "number") {
+    config.gethPort = 8545; // default
 }
+
+// set the default output directory if it's not provided
+if(!('ouput' in config) || (typeof config.ouput) != "string") {
+    config.ouput = "."; // default this directory
+}
+
 
 grabBlocks(config);
 
