@@ -1,5 +1,7 @@
 var express = require("express");
 var app = express();
+var async = require("async");
+
 var fs = require("fs");
 
 var Web3 = require('web3');
@@ -8,51 +10,94 @@ var Web3 = require('web3');
 var grabBlocks = function(config) {
 	var web3 = new Web3(new Web3.providers.HttpProvider(config.gethUrl));
 	setTimeout(function() {
-		grabBlock("latest");
+		grabBlock(config, web3, "latest");
 	}, 10000);
 }
 
-var grabBlock = function(config, blockHash) {
+
+var grabBlock = function(config, web3, blockHash) {
 	if(web3.isConnected()) {
-		web3.eth.getBlock("latest", function(error, blockData) {
+		web3.eth.getBlock(blockHash, function(error, blockData) {
 			if(error) {
-				console.log(error);
-				return;
+				console.log("Error: Aborted due to error on getting block with hash: " +
+					blockHash);
+				console.log("Error Received: " + error);
+				process.exit(9);
 			}
+			else {
+				// Grab each of the block's transactions and add it to the blockData's 
+				// transactions array before writing the blockData to the file
+				if('transactions' in blockData && !Array.isArray(blockData.transactions)) {
 
-			console.log(blockData); //TESTING
+					// copy the transaction hashes and clear the transactions array 
+					// (will now be an array an array of transaction objects rather 
+				  // than just transaction hash strings)
+					var txHashes = blockData.transactions.slice();
+					blockData.transactions = [];
 
-			// grab all the transaction infos
-			if('transactions' in blockData) {
-				for(var txI = 0; txI < blockData.transactions; txI++) {
-					var txHash = blockData.transactions[txI];
-					// TODO: with  need to grab transaction data and set to blockData.txs array of objects 
-					// for all transactions in block, then with a promise write to json file
+					async.forEachSeries(txHashes, function(txHash, callback) {
+						web3.eth.getTransaction(txHash, function(error, transactionData) {
+							blockData.transactions.push(transactionData);
+							callback();
+						});
+					}, function(error) {
+
+						console.log("got all " + (blockData.transactions.length) + 
+							" transactions for block: " + blockData.hash);
+
+						// write the block info to a json file
+						writeBlockToFile(config, blockData);
+						if('parentHash' in blockData) {
+							grabBlock(config, web3, blockData.parentHash);
+						}
+					});
+				}
+				else {
+					writeBlockToFile(config, blockData);
+					if('parentHash' in blockData) {
+						grabBlock(config, web3, blockData.parentHash);
+					}
 				}
 			}
 
-			// write the block info to a json file
-			writeToFile(config, blockData);
-
-			// complete -> signify and go onto next block
-			console.log("Grabbed and stored block number: " + blockData.number + ", hash: " + blockData.hash);
-			if('parentHash' in blockData) {
-				grabBlock(config, blockData.parentHash);
-			}
+			
 		});
 	}
+	else {
+		console.log("Error: Aborted due to web3 is not connected when trying to " +
+			"get block with hash: " + blockHash);
+		process.exit(9);
+	}
 }
 
 
-var writeToFile = function(config, blockData) {
-	var outputDirectory = ".";
+var writeBlockToFile = function(config, blockData) {
+	var outputDirectoryPath = ".";
 	if('output' in config && (typeof config.output) != "string" ) {
-		outputDirectory = config.output;
+		outputDirectoryPath = config.output;
 	}
 
-	// TODO: write the blockData to the file
-}
+	var blockFilename = blockData.hash + ".json";
+	var fileContents = JSON.stringify(blockData, null, 4);
 
+	// TODO: write the blockData to the file
+	fs.writeFile(outputDirectoryPath + "/" + blockFilename, fileContents, function(error) {
+		if(error) {
+			console.log("Error: Aborted due to error on writting to file for block number " +
+				blockData.number.toString() + ": '" + outputDirectoryPath + "/" +
+				blockFilename + "'");
+			console.log("Error Received: " + error);
+			process.exit(9);
+
+			return console.log(error);
+		}
+		else {
+			console.log("File successfully written for block number " +
+				blockData.number.toString() + ": '" + outputDirectoryPath + "/" +
+				blockFilename + "'");
+		}
+	}); 
+}
 
 
 /** On Startup **/
@@ -64,9 +109,11 @@ var writeToFile = function(config, blockData) {
 var configContents = fs.readFileSync("config.json");
 var config = JSON.parse(configContents);
 
-
-if(!('gethUrl' in config) || (typeof config.gethUrl) != "string"  || config.gethUrl.length == 0) {
-    console.log("Error: In config.json 'output': expecting string value for the url geth is running on. (should be http://localhost:8545 by default for local geth instance)");
+if(!('gethUrl' in config) || (typeof config.gethUrl) != "string"  || 
+	config.gethUrl.length == 0) {
+    console.log("Error: In config.json 'output': expecting string value for the " + 
+    	"url geth is running on. (should be http://localhost:8545 by default for " +
+    	"local geth instance)");
     process.exit(9);
 }
 
