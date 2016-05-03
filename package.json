@@ -1,0 +1,9 @@
+{
+  "name": "ethereum-info-grabber",
+  "version": "0.0.1",
+  "dependencies": {
+    "express": "latest",
+    "web3": "latest",
+    "fs": "latest"
+  }
+}
