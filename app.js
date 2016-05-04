@@ -9,7 +9,7 @@ var Web3 = require('web3');
 
 var grabBlocks = function(config) {
 	
-	var web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:" + gethPort.toString()));
+	var web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:" + config.gethPort.toString()));
 	setTimeout(function() {
 		grabBlock(config, web3, "latest");
 	}, 10000);
@@ -28,14 +28,13 @@ var grabBlock = function(config, web3, blockHash) {
 			else {
 				// Grab each of the block's transactions and add it to the blockData's 
 				// transactions array before writing the blockData to the file
-				if('transactions' in blockData && !Array.isArray(blockData.transactions)) {
+				if('transactions' in blockData && Array.isArray(blockData.transactions)) {
 
 					// copy the transaction hashes and clear the transactions array 
 					// (will now be an array an array of transaction objects rather 
 				  // than just transaction hash strings)
 					var txHashes = blockData.transactions.slice();
 					blockData.transactions = [];
-
 					async.forEachSeries(txHashes, function(txHash, callback) {
 						web3.eth.getTransaction(txHash, function(error, transactionData) {
 							blockData.transactions.push(transactionData);
@@ -101,20 +100,20 @@ var writeBlockToFile = function(config, blockData) {
 //		ouput (output directory, this directory if not provided)
 //		gethPort (geth port on local host (optional, defult = 8545))
 
+var config = {};
+
 try {
-	data = fs.readFileSync('foo.bar');
+	var configContents = fs.readFileSync("config.json");
+	config = JSON.parse(configContents);
 }
 catch (error) {
 	if (error.code === 'ENOENT') {
-		console.log('File not found!');
+		console.log('No config file found. Using default configuration.');
 	}
 	else {
 		throw error;
 	}
 }
-
-var configContents = fs.readFileSync("config.json");
-var config = JSON.parse(configContents);
 
 // set the default geth port if it's not provided
 if(!('gethPort' in config) || (typeof config.gethPort) != "number") {
@@ -126,8 +125,8 @@ if(!('ouput' in config) || (typeof config.ouput) != "string") {
     config.ouput = "."; // default this directory
 }
 
-
+console.log("Using configuration:");
+console.log(config);
 grabBlocks(config);
-
 
 app.listen(4000);
