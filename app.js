@@ -11,7 +11,7 @@ var grabBlocks = function(config) {
 	
 	var web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:" + config.gethPort.toString()));
 	setTimeout(function() {
-		grabBlock(config, web3, "latest");
+		grabBlock(config, web3, config.start);
 	}, 10000);
 }
 
@@ -42,8 +42,10 @@ var grabBlock = function(config, web3, blockHash) {
 						});
 					}, function(error) {
 
-						console.log("got all " + (blockData.transactions.length) + 
-							" transactions for block: " + blockData.hash);
+						if(!('quiet' in config && config.quiet === true)) {
+							console.log("got all " + (blockData.transactions.length) + 
+								" transactions for block: " + blockData.hash);
+						}
 
 						// write the block info to a json file
 						writeBlockToFile(config, blockData);
@@ -85,11 +87,13 @@ var writeBlockToFile = function(config, blockData) {
 			return console.log(error);
 		}
 		else {
-			console.log("File successfully written for block number " +
-				blockData.number.toString() + ": '" + config.output + "/" +
-				blockFilename + "'");
+			if(!('quiet' in config && config.quiet === true)) {
+				console.log("File successfully written for block number " +
+					blockData.number.toString() + ": '" + config.output + "/" +
+					blockFilename + "'");
+			}
 		}
-	}); 
+	});
 }
 
 
@@ -97,7 +101,7 @@ var writeBlockToFile = function(config, blockData) {
 // start geth with: geth --rpc --rpccorsdomain "http://localhost:8000"
 // read input arguments
 // possible args: 
-//		ouput (output directory, this directory if not provided)
+//		output (output directory, this directory if not provided)
 //		gethPort (geth port on local host (optional, defult = 8545))
 
 var config = {};
@@ -121,9 +125,15 @@ if(!('gethPort' in config) || (typeof config.gethPort) != "number") {
 }
 
 // set the default output directory if it's not provided
-if(!('ouput' in config) || (typeof config.ouput) != "string") {
-    config.ouput = "."; // default this directory
+if(!('output' in config) || (typeof config.output) != "string") {
+    config.output = "."; // default this directory
 }
+
+// set the default start block if it's not provided
+if(!('start' in config) || (typeof config.start) != "string") {
+    config.start = "latest"; // default this directory
+}
+
 
 console.log("Using configuration:");
 console.log(config);
