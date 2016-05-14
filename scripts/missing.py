@@ -12,51 +12,50 @@ parser.add_argument('--maxblock', type=int, help='the block number to find missi
 
 args = parser.parse_args()
 if(args.directory == None or args.maxblock == None):
-	print "missing arguments..."
-	sys.exit()
+    print "missing arguments..."
+    sys.exit()
 
 block_numbers_statuses = [False] * args.maxblock
 json_file_ext_expr = re.compile('^.*\.json$')
 
 # update block statuses (True = have valid .json file for them in block_files_path, False = missing)
 for filename in os.listdir(args.directory):
-	if(json_file_ext_expr.match(filename)):
-		with open(args.directory + os.sep + filename, 'r') as blockfile:
-		    try:
-		    	blockdata = json.loads(blockfile.read())
+    if(json_file_ext_expr.match(filename)):
+        with open(args.directory + os.sep + filename, 'r') as blockfile:
+            try:
+                blockdata = json.loads(blockfile.read())
 
-		    	if(blockdata['number'] < args.maxblock):
-		    		block_numbers_statuses[blockdata['number']] = True;
-
-		    except UnicodeDecodeError as ude:
-		        None
+                if(blockdata['number'] < args.maxblock):
+                    block_numbers_statuses[blockdata['number']] = True;
+            except ValueError:
+                print 'Decoding json failed for file: ' + (args.directory + os.sep + filename)
 
 # show missing
 missing_blocks = list()
 missing_blocks_streak = list()
 for i in range(len(block_numbers_statuses)):
-	if not block_numbers_statuses[i]:
-		streak_broken = False
-		if len(missing_blocks_streak) > 0:
-			streak_broken = (missing_blocks_streak[-1] != i - 1)
+    if not block_numbers_statuses[i]:
+        streak_broken = False
+        if len(missing_blocks_streak) > 0:
+            streak_broken = (missing_blocks_streak[-1] != i - 1)
 
 
-		# is streak broken -> 
-			#	add the streak list to missing blocks and clear the streak list
-		if streak_broken:
-			if len(missing_blocks_streak) < 2:
-				missing_blocks.append(i)
-			else:
-				missing_blocks.append({'start': missing_blocks_streak[0], 'end': missing_blocks_streak[-1]+1})
-			missing_blocks_streak = list()
-			
-		missing_blocks_streak.append(i)
+        # is streak broken -> 
+            #   add the streak list to missing blocks and clear the streak list
+        if streak_broken:
+            if len(missing_blocks_streak) < 2:
+                missing_blocks.append(i)
+            else:
+                missing_blocks.append({'start': missing_blocks_streak[0], 'end': missing_blocks_streak[-1]+1})
+            missing_blocks_streak = list()
+            
+        missing_blocks_streak.append(i)
 
 # write remaining missing block numbers in streak list
 if len(missing_blocks_streak) < 2:
-	missing_blocks.append(i)
+    missing_blocks.append(i)
 else:
-	missing_blocks.append({'start': missing_blocks_streak[0], 'end': missing_blocks_streak[-1]+1})
+    missing_blocks.append({'start': missing_blocks_streak[0], 'end': missing_blocks_streak[-1]+1})
 
 # write config file with the missing blocks
 config_obj = {}
