@@ -3,7 +3,7 @@ import re
 import json
 
 block_files_path = 'block_files'
-max_block_number = 20
+max_block_number = 10000
 
 block_numbers_statuses = [False] * max_block_number
 json_file_ext_expr = re.compile('^.*\.json$')
@@ -26,25 +26,34 @@ missing_blocks = list()
 missing_blocks_streak = list()
 for i in range(len(block_numbers_statuses)):
 	if not block_numbers_statuses[i]:
+		streak_broken = False
 		if len(missing_blocks_streak) > 0:
+			streak_broken = (missing_blocks_streak[-1] != i - 1)
 
-			# is streak broken or last block number -> 
+
+		# is streak broken -> 
 			#	add the streak list to missing blocks and clear the streak list
-			if missing_blocks_streak[-1] != i - 1 or i == len(block_numbers_statuses) - 1:
-				if len(missing_blocks_streak) < 2:
-					missing_blocks.append(i)
-				else:
-					missing_blocks.append({'start': missing_blocks_streak[0], 'end': missing_blocks_streak[-1]+1})
-				missing_blocks_streak = list()
+		if streak_broken:
+			if len(missing_blocks_streak) < 2:
+				missing_blocks.append(i)
+			else:
+				missing_blocks.append({'start': missing_blocks_streak[0], 'end': missing_blocks_streak[-1]+1})
+			missing_blocks_streak = list()
 			
 		missing_blocks_streak.append(i)
 
+# write remaining missing block numbers in streak list
+if len(missing_blocks_streak) < 2:
+	missing_blocks.append(i)
+else:
+	missing_blocks.append({'start': missing_blocks_streak[0], 'end': missing_blocks_streak[-1]+1})
+
 # write config file with the missing blocks
-# result_config_file = open('config.json', 'w')
 config_obj = {}
 config_obj['blocks'] = missing_blocks
-print(json.dumps(config_obj, sort_keys=True, indent=4, separators=(',', ': ')))
 
-#result_config_file.close()
+result_config_file = open('config.json', 'w')
+result_config_file.write(json.dumps(config_obj, sort_keys=True, indent=4, separators=(',', ': ')))
+result_config_file.close()
 
 
