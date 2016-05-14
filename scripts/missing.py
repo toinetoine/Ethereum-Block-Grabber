@@ -1,21 +1,31 @@
 import os
+import sys
+import argparse
 import re
 import json
 
-block_files_path = 'block_files'
-max_block_number = 10000
+parser = argparse.ArgumentParser(description='Gets the missing block numbers and creates a config file for them.')
+parser.add_argument('--directory', help='path to the directory containing the block files')
+parser.add_argument('--maxblock', type=int, help='the block number to find missing blocks up to')
 
-block_numbers_statuses = [False] * max_block_number
+
+
+args = parser.parse_args()
+if(args.directory == None or args.maxblock == None):
+	print "missing arguments..."
+	sys.exit()
+
+block_numbers_statuses = [False] * args.maxblock
 json_file_ext_expr = re.compile('^.*\.json$')
 
 # update block statuses (True = have valid .json file for them in block_files_path, False = missing)
-for filename in os.listdir(block_files_path):
+for filename in os.listdir(args.directory):
 	if(json_file_ext_expr.match(filename)):
-		with open(block_files_path + os.sep + filename, 'r') as blockfile:
+		with open(args.directory + os.sep + filename, 'r') as blockfile:
 		    try:
 		    	blockdata = json.loads(blockfile.read())
 
-		    	if(blockdata['number'] < max_block_number):
+		    	if(blockdata['number'] < args.maxblock):
 		    		block_numbers_statuses[blockdata['number']] = True;
 
 		    except UnicodeDecodeError as ude:
