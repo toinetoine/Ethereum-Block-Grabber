@@ -65,10 +65,12 @@ var grabBlock = function(config, web3, blockHashOrNumber) {
 
 		web3.eth.getBlock(desiredBlockHashOrNumber, function(error, blockData) {
 			if(error) {
-				console.log('Error: Aborted due to error on getting block with hash/number: ' +
+				console.log('Warning: error on getting block with hash/number: ' +
+					desiredBlockHashOrNumber + ': ' + error);
+			}
+			else if(blockData == null) {
+				console.log('Warning: null block data received from the block with hash/number: ' +
 					desiredBlockHashOrNumber);
-				console.log('Error Received: ' + error);
-				process.exit(1);
 			}
 			else {
 				// Grab each of the block's transactions and add it to the blockData's 
