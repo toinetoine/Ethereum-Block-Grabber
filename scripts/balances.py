@@ -1,3 +1,7 @@
+# balances.py
+# Writes to a file balances.py an ordered list (by ether balance) of all accounts referenced in the block files 
+# in the specified directory.
+
 import os
 import sys
 import argparse
@@ -45,7 +49,7 @@ for filename in os.listdir(args.directory):
             except ValueError:
                 print 'Decoding json failed for file: ' + (args.directory + os.sep + filename)
 
-result_config_file = open('balances.txt', 'w')
+result_config_file = open('balances.csv', 'w')
 result_config_file.write('account,balance\n')
 for account, balance in reversed(sorted(balances.items(), key=operator.itemgetter(1))):
     result_config_file.write(account + ',' + str(balance) + '\n')
