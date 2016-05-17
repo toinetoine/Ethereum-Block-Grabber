@@ -1,3 +1,7 @@
+# missing.py
+# Creates a config.json file for grabbing blocks not accounted for in the specified directory. Running app.js with 
+# the outputed config.json file will create block files for the missing blocks.
+
 import os
 import sys
 import argparse
