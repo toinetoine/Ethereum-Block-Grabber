@@ -11,12 +11,7 @@ var grabBlocks = function(config) {
 	var web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:' + 
 		config.gethPort.toString()));
 	setTimeout(function() {
-		if('start' in config) {
-			grabBlock(config, web3, config.start);
-		}
-		else if('blocks' in config) {
-			grabBlock(config, web3, config.blocks.pop());
-		}
+		grabBlock(config, web3, config.blocks.pop());
 	}, 10000);
 }
 
@@ -25,40 +20,24 @@ var grabBlock = function(config, web3, blockHashOrNumber) {
 	
 	var desiredBlockHashOrNumber;
 
+	// check if done
+	if(blockHashOrNumber == undefined) {
+		// done.
+		return; 
+	}
+
 	if (typeof blockHashOrNumber === 'object') {
-		if('start' in blockHashOrNumber && typeof blockHashOrNumber.start === 'number' 
-			&& 'end' in blockHashOrNumber && typeof blockHashOrNumber.end === 'number') {
-
-			if(blockHashOrNumber.start != blockHashOrNumber.end) {
-				// set desired block number to grab
-				desiredBlockHashOrNumber = blockHashOrNumber.start;
-				// iterate the block number depending on going down or up number
-				if(blockHashOrNumber.end > blockHashOrNumber.start) {
-					blockHashOrNumber.start++;
-				}
-				else {
-					blockHashOrNumber.start--;
-				}
-			}
-
-			// reached end of interval so onto the next element in the blocks array
-			else {
-				desiredBlockHashOrNumber = config.blocks.pop();
-			}
+		if('start' in blockHashOrNumber && 'end' in blockHashOrNumber) {
+			desiredBlockHashOrNumber = blockHashOrNumber.end;
 		}
 		else {
 			console.log('Error: Aborted becasue found a interval in blocks ' +
-				'array that doesn\'t have both a start and end number.');
+				'array that doesn\'t have both a start and end.');
 			process.exit(9);
 		}
 	}
 	else {
 		desiredBlockHashOrNumber = blockHashOrNumber;
-	}
-
-	// exit
-	if(typeof desiredBlockHashOrNumber === 'undefined') {
-		return;
 	}
 
 	if(web3.isConnected()) {
@@ -73,12 +52,6 @@ var grabBlock = function(config, web3, blockHashOrNumber) {
 					desiredBlockHashOrNumber);
 			}
 			else {
-				// Grab each of the block's transactions and add it to the blockData's 
-				// transactions array before writing the blockData to the file
-
-				// copy the transaction hashes and clear the transactions array 
-				// (will now be an array an array of transaction objects rather 
-			    // than just transaction hash strings)
 				var txHashes = ('transactions' in blockData && Array.isArray(blockData.transactions)) ?
 					blockData.transactions.slice() : [];
 				blockData.transactions = [];
@@ -89,24 +62,28 @@ var grabBlock = function(config, web3, blockHashOrNumber) {
 					});
 				}, function(error) {
 
-					if(!('quiet' in config && config.quiet === true)) {
-						console.log('got all ' + (blockData.transactions.length) + 
-							' transactions for block: ' + blockData.hash);
-					}
-
-					// write the block info to a json file
 					writeBlockToFile(config, blockData);
-					if('start' in config) {
-						grabBlock(config, web3, blockData.parentHash);
-					}
-					else if('blocks' in config) {
-						// if working on interval, then grab the next in the interval
-						if(typeof blockHashOrNumber === 'object') {
-							grabBlock(config, web3, blockHashOrNumber);
+
+					if('hash' in blockData && 'number' in blockData) {
+						// if the block number or block hash just grabbed isn't equal to the start yet, 
+						// then grab the parent block number (<this block's number> - 1)
+						if(typeof blockHashOrNumber === 'object' &&
+							((typeof blockHashOrNumber['start'] === 'string' 
+							&& blockData['hash'] !== blockHashOrNumber['start']) ||
+							(typeof blockHashOrNumber['start'] === 'number' && 
+							blockData['number'] !== blockHashOrNumber['start']))) {
+								blockHashOrNumber['end'] = blockData['number'] - 1;
+								grabBlock(config, web3, blockHashOrNumber);
 						}
 						else {
 							grabBlock(config, web3, config.blocks.pop());
 						}
+
+
+					}
+					else {
+						console.log('Error: No hash or number was found for block: ' + blockHashOrNumber);
+						process.exit(9);
 					}
 				});
 			}
@@ -124,7 +101,6 @@ var writeBlockToFile = function(config, blockData) {
 	var blockFilename = blockData.number + '.json';
 	var fileContents = JSON.stringify(blockData, null, 4);
 
-	// TODO: write the blockData to the file
 	fs.writeFile(config.output + '/' + blockFilename, fileContents, function(error) {
 		if(error) {
 			console.log('Error: Aborted due to error on writting to file for ' + 
@@ -180,25 +156,14 @@ if (!('output' in config) || (typeof config.output) !== 'string') {
     config.output = '.'; // default this directory
 }
 
-// if no array of specific blocks to grab is specified then assume grabbing all
-// ancestors recursivly from specified start
+// set the default blocks if it's not provided
 if (!('blocks' in config) || !(Array.isArray(config.blocks))) {
-	// if no start provided in config then default: start from latest
-	if(!('start' in config) || (typeof config.start !== 'string' && typeof config.start !== 'number')) {
-		config.start = 'latest'; 
-	}
+	config.blocks = [];
+	config.blocks.push({'start': 0, 'end': 'latest'});
 }
 
 console.log('Using configuration:');
 console.log(config);
 grabBlocks(config);
-
-
-
-	
-
-
-
-
 
 app.listen(4000);
