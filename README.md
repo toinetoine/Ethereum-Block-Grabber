@@ -8,8 +8,8 @@ This makes it very easy to perform analytics on the blockchain without having to
   2. Start geth: ```geth --rpc --rpccorsdomain "http://localhost:8000"```. Note: Geth will begin syncing blocks. Depending on your system it may take more than a day of constant running to synchronize. You can speedup synchronization with ```geth sync --fast```.
   3. When you're geth instance is done syncing, run the node application with or without a config.json file while geth is running.
 
-##Config 
-The config file is optional. Without the config file it will download block files for all files recursively (from the latest block downloaded on your local geth instance through it's ancestors to the earliest block). Running with the config file allows you to download specific blocks or intvervals of blocks.
+##Config
+The config file is optional. Without the config file it will download block files for all files recursively (from the latest block downloaded on your local geth instance through it's ancestors to block 0). Running with the config file allows you to download specific blocks or intvervals of blocks.
 ```
 {
     "output": "./blockfiles",
@@ -25,5 +25,14 @@ By default it will downlaod all blocks from the latest until it finds a block th
 ```
 {
     "output": "./blockfiles"
+}
+```
+Alternativly you can specify the parameter: ```"terminateAtExistingFile": true``` in config.json in order to terminate the process when an existing file is found for a block being grabbed. For example if the directory ```./blockfiles``` contains json files for blocks 0 to 1,499,999 while the latest block recorded by your geth instance is 1,500,001, running with the following config file will only grab blocks 1,500,000 and 1,500,001 and then terminate.  
+```
+{
+    "output": "./blockfiles",
+    "gethPort": 8545, 
+    "blocks": [ {"start": 0, "end": "latest"],
+    "terminateAtExistingFile": true
 }
 ```
