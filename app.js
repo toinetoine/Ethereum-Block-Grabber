@@ -12,9 +12,8 @@ var grabBlocks = function(config) {
 		config.gethPort.toString()));
 	setTimeout(function() {
 		grabBlock(config, web3, config.blocks.pop());
-	}, 10000);
+	}, 2000);
 }
-
 
 var grabBlock = function(config, web3, blockHashOrNumber) {
 	
@@ -22,7 +21,6 @@ var grabBlock = function(config, web3, blockHashOrNumber) {
 
 	// check if done
 	if(blockHashOrNumber == undefined) {
-		// done.
 		return; 
 	}
 
@@ -62,7 +60,12 @@ var grabBlock = function(config, web3, blockHashOrNumber) {
 					});
 				}, function(error) {
 
-					writeBlockToFile(config, blockData);
+					if('terminateAtExistingFile' in config && config.terminateAtExistingFile === true) {
+						checkBlockFileExistsThenWrite(config, blockData);
+					}
+					else {
+						writeBlockToFile(config, blockData);
+					}
 
 					if('hash' in blockData && 'number' in blockData) {
 						// if the block number or block hash just grabbed isn't equal to the start yet, 
@@ -78,8 +81,6 @@ var grabBlock = function(config, web3, blockHashOrNumber) {
 						else {
 							grabBlock(config, web3, config.blocks.pop());
 						}
-
-
 					}
 					else {
 						console.log('Error: No hash or number was found for block: ' + blockHashOrNumber);
@@ -108,8 +109,6 @@ var writeBlockToFile = function(config, blockData) {
 				config.output + '/' + blockFilename + '"');
 			console.log('Error Received: ' + error);
 			process.exit(9);
-
-			return console.log(error);
 		}
 		else {
 			if(!('quiet' in config && config.quiet === true)) {
@@ -121,6 +120,29 @@ var writeBlockToFile = function(config, blockData) {
 	});
 }
 
+/**
+  * Checks if the a file exists for the block number then ->
+  *		if file exists: abort
+  *		if file DNE: write a file for the block
+  */
+var checkBlockFileExistsThenWrite = function(config, blockData) {
+	var blockFilePath = config.output + '/' + blockData.number + '.json';
+	fs.stat(blockFilePath, function(error, stat) {
+	    if(error == null) {
+	    	console.log('Aborting because block number: ' + blockData.number.toString() + 
+	    		' already has a json file for it.');
+	    	process.exit(9);
+	    }
+	    else if(error.code == 'ENOENT') {
+	    	writeBlockToFile(config, blockData);
+	    }
+	    else {
+	        console.log('Error: Aborted due to error when checking if file exists for block number: ' + 
+	        	blockData.number.toString(), error.code);
+	        process.exit(9);
+	    }
+	});
+}
 
 /** On Startup **/
 // start geth with: geth --rpc --rpccorsdomain 'http://localhost:8000'
