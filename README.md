@@ -18,7 +18,7 @@ The config file is optional. Without the config file it will download block file
     "quiet": true
 }
 ```
-This configuration will download block number 1, block numbers in the interval [2, 4] (both start and end are inclusive), and the block with hash 0xf37c632d361e0a93f08ba29b1a2c708d9caa3ee19d1ee8d2a02612bffe49f0a9. It will save the information for each block in a file named ```<block number>.json``` in the directory ```./block_files```.
+This configuration will download block number 1, block numbers in the interval 2, 4 (both start and end are inclusive), and the block with hash 0xf37c632d361e0a93f08ba29b1a2c708d9caa3ee19d1ee8d2a02612bffe49f0a9. It will save the information for each block in a file named ```<block number>.json``` in the directory ```./block_files```.
 *Note: the ```blocks``` array in the config file takes an array of specific block numbers, block number ranges, or block hashes to download (or any combination of the three).*
 
 By default it will downlaod all blocks from the latest until it finds a block that already has a json file named ```<block's number>.json```, in which case it will stop (so if you specify an empty directory in the config file it will download all blocks from the latest block back to the genesis block. A simple configuration to do this is (where the directory ```./blockfiles``` doesn't contain any block files):
