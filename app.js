@@ -1,6 +1,5 @@
 var express = require('express');
 var app = express();
-var async = require('async');
 
 var fs = require('fs');
 
@@ -40,7 +39,7 @@ var grabBlock = function(config, web3, blockHashOrNumber) {
 
 	if(web3.isConnected()) {
 
-		web3.eth.getBlock(desiredBlockHashOrNumber, function(error, blockData) {
+		web3.eth.getBlock(desiredBlockHashOrNumber, true, function(error, blockData) {
 			if(error) {
 				console.log('Warning: error on getting block with hash/number: ' +
 					desiredBlockHashOrNumber + ': ' + error);
@@ -50,49 +49,42 @@ var grabBlock = function(config, web3, blockHashOrNumber) {
 					desiredBlockHashOrNumber);
 			}
 			else {
-				var txHashes = ('transactions' in blockData && Array.isArray(blockData.transactions)) ?
-					blockData.transactions.slice() : [];
-				blockData.transactions = [];
-				async.forEachSeries(txHashes, function(txHash, callback) {
-					web3.eth.getTransaction(txHash, function(error, txData) {
-						blockData.transactions.push(txData);
-						callback();
-					});
-				}, function(error) {
+				if('terminateAtExistingFile' in config && config.terminateAtExistingFile === true) {
+					checkBlockFileExistsThenWrite(config, blockData);
+				}
+				else {
+					writeBlockToFile(config, blockData);
+				}
 
-					if('terminateAtExistingFile' in config && config.terminateAtExistingFile === true) {
-						checkBlockFileExistsThenWrite(config, blockData);
+				if('hash' in blockData && 'number' in blockData) {
+					// If currently working on an interval (typeof blockHashOrNumber === 'object') and 
+					// the block number or block hash just grabbed isn't equal to the start yet: 
+					// then grab the parent block number (<this block's number> - 1). Otherwise done 
+					// with this interval object (or not currently working on an interval) 
+					// -> so move onto the next thing in the blocks array.
+					if(typeof blockHashOrNumber === 'object' &&
+						(
+							(typeof blockHashOrNumber['start'] === 'string' && blockData['hash'] !== blockHashOrNumber['start']) ||
+							(typeof blockHashOrNumber['start'] === 'number' && blockData['number'] > blockHashOrNumber['start'])
+						)
+					) {
+						blockHashOrNumber['end'] = blockData['number'] - 1;
+						grabBlock(config, web3, blockHashOrNumber);
 					}
 					else {
-						writeBlockToFile(config, blockData);
+						grabBlock(config, web3, config.blocks.pop());
 					}
-
-					if('hash' in blockData && 'number' in blockData) {
-						// if the block number or block hash just grabbed isn't equal to the start yet, 
-						// then grab the parent block number (<this block's number> - 1)
-						if(typeof blockHashOrNumber === 'object' &&
-							((typeof blockHashOrNumber['start'] === 'string' 
-							&& blockData['hash'] !== blockHashOrNumber['start']) ||
-							(typeof blockHashOrNumber['start'] === 'number' && 
-							blockData['number'] !== blockHashOrNumber['start']))) {
-								blockHashOrNumber['end'] = blockData['number'] - 1;
-								grabBlock(config, web3, blockHashOrNumber);
-						}
-						else {
-							grabBlock(config, web3, config.blocks.pop());
-						}
-					}
-					else {
-						console.log('Error: No hash or number was found for block: ' + blockHashOrNumber);
-						process.exit(9);
-					}
-				});
+				}
+				else {
+					console.log('Error: No hash or number was found for block: ' + blockHashOrNumber);
+					process.exit(9);
+				}
 			}
 		});
 	}
 	else {
 		console.log('Error: Aborted due to web3 is not connected when trying to ' +
-			'get block with hash: ' + blockHash);
+			'get block ' + desiredBlockHashOrNumber);
 		process.exit(9);
 	}
 }

@@ -4,7 +4,6 @@
   "dependencies": {
     "express": "latest",
     "web3": "latest",
-    "fs": "latest",
-    "async": "latest"
+    "fs": "latest"
   }
 }
