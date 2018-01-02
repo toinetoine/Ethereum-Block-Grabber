@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "dependencies": {
     "express": "latest",
-    "web3": "latest",
+    "web3": "0.19.0",
     "fs": "latest"
   }
 }

@@ -1,5 +1,5 @@
 # Ethereum Block Grabber
-Grabs the entire blockchain from a specified geth instance. Each block will have a json file named ```<block number>.json``` in the output directory specified looking like [this](https://gist.github.com/Antoine-D/2067be1b72cee66b143b220edbb5b522).
+Grabs the entire blockchain from a specified geth instance. Each block will have a json file named ```<block number>.json``` in the output directory specified looking like [this](https://gist.github.com/toinetoine/2067be1b72cee66b143b220edbb5b522).
 
 This makes it very easy to perform analytics on the blockchain without having to simulatenously run a geth instance. In the scripts folder you will find some python scripts that do stuff with the downloaded block files. For example [here](https://github.com/Antoine-D/ethereum-block-grabber/blob/master/scripts/balances.py) is a python script that uses the block files generated to create an ordered list of all addresses by their ether balance. 
 
