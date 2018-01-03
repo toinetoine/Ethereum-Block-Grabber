@@ -2,9 +2,7 @@ var express = require('express');
 var app = express();
 
 var fs = require('fs');
-
 var Web3 = require('web3');
-
 
 var grabBlocks = function(config) {
 	var web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:' + 
@@ -19,12 +17,12 @@ var grabBlock = function(config, web3, blockHashOrNumber) {
 	var desiredBlockHashOrNumber;
 
 	// check if done
-	if(blockHashOrNumber == undefined) {
+	if (blockHashOrNumber == undefined) {
 		return; 
 	}
 
 	if (typeof blockHashOrNumber === 'object') {
-		if('start' in blockHashOrNumber && 'end' in blockHashOrNumber) {
+		if ('start' in blockHashOrNumber && 'end' in blockHashOrNumber) {
 			desiredBlockHashOrNumber = blockHashOrNumber.end;
 		}
 		else {
@@ -37,32 +35,32 @@ var grabBlock = function(config, web3, blockHashOrNumber) {
 		desiredBlockHashOrNumber = blockHashOrNumber;
 	}
 
-	if(web3.isConnected()) {
+	if (web3.isConnected()) {
 
 		web3.eth.getBlock(desiredBlockHashOrNumber, true, function(error, blockData) {
-			if(error) {
+			if (error) {
 				console.log('Warning: error on getting block with hash/number: ' +
 					desiredBlockHashOrNumber + ': ' + error);
 			}
-			else if(blockData == null) {
+			else if (blockData == null) {
 				console.log('Warning: null block data received from the block with hash/number: ' +
 					desiredBlockHashOrNumber);
 			}
 			else {
-				if('terminateAtExistingFile' in config && config.terminateAtExistingFile === true) {
+				if ('terminateAtExistingFile' in config && config.terminateAtExistingFile === true) {
 					checkBlockFileExistsThenWrite(config, blockData);
 				}
 				else {
 					writeBlockToFile(config, blockData);
 				}
 
-				if('hash' in blockData && 'number' in blockData) {
+				if ('hash' in blockData && 'number' in blockData) {
 					// If currently working on an interval (typeof blockHashOrNumber === 'object') and 
 					// the block number or block hash just grabbed isn't equal to the start yet: 
 					// then grab the parent block number (<this block's number> - 1). Otherwise done 
 					// with this interval object (or not currently working on an interval) 
 					// -> so move onto the next thing in the blocks array.
-					if(typeof blockHashOrNumber === 'object' &&
+					if (typeof blockHashOrNumber === 'object' &&
 						(
 							(typeof blockHashOrNumber['start'] === 'string' && blockData['hash'] !== blockHashOrNumber['start']) ||
 							(typeof blockHashOrNumber['start'] === 'number' && blockData['number'] > blockHashOrNumber['start'])
@@ -95,7 +93,7 @@ var writeBlockToFile = function(config, blockData) {
 	var fileContents = JSON.stringify(blockData, null, 4);
 
 	fs.writeFile(config.output + '/' + blockFilename, fileContents, function(error) {
-		if(error) {
+		if (error) {
 			console.log('Error: Aborted due to error on writting to file for ' + 
 				'block number ' + blockData.number.toString() + ': "' + 
 				config.output + '/' + blockFilename + '"');
@@ -103,7 +101,7 @@ var writeBlockToFile = function(config, blockData) {
 			process.exit(9);
 		}
 		else {
-			if(!('quiet' in config && config.quiet === true)) {
+			if (!('quiet' in config && config.quiet === true)) {
 				console.log('File successfully written for block number ' +
 					blockData.number.toString() + ': "' + config.output + '/' +
 					blockFilename + '"');
@@ -120,12 +118,12 @@ var writeBlockToFile = function(config, blockData) {
 var checkBlockFileExistsThenWrite = function(config, blockData) {
 	var blockFilePath = config.output + '/' + blockData.number + '.json';
 	fs.stat(blockFilePath, function(error, stat) {
-	    if(error == null) {
+	    if (error == null) {
 	    	console.log('Aborting because block number: ' + blockData.number.toString() + 
 	    		' already has a json file for it.');
 	    	process.exit(9);
 	    }
-	    else if(error.code == 'ENOENT') {
+	    else if (error.code == 'ENOENT') {
 	    	writeBlockToFile(config, blockData);
 	    }
 	    else {
