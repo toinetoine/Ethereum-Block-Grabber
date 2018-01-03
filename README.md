@@ -28,4 +28,4 @@ This configuration will:
 
 *Note: By default it will create a file for all blocks starting from the last block your geth instance has synced until it encounters a block that already has a file named ```<block's number>.json```, in which case it will stop (so in an empty directory it will create a file for all blocks from the latest block you've synced back to the genesis block).*
 
-*Note: the python scripts in the script directory are utilities to run on the blocks' JSON files.
+*Note: the python scripts in the script directory are utilities to run on the blocks' JSON files.*
