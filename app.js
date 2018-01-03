@@ -23,7 +23,12 @@ var grabBlock = function(config, web3, blockHashOrNumber) {
 
 	if (typeof blockHashOrNumber === 'object') {
 		if ('start' in blockHashOrNumber && 'end' in blockHashOrNumber) {
-			desiredBlockHashOrNumber = blockHashOrNumber.end;
+			if (blockHashOrNumber.end === 'latest' && web3.eth.syncing !== false) {
+				desiredBlockHashOrNumber = web3.eth.syncing.currentBlock;
+			}
+			else {
+				desiredBlockHashOrNumber = blockHashOrNumber.end;
+			}
 		}
 		else {
 			console.log('Error: Aborted becasue found a interval in blocks ' +
